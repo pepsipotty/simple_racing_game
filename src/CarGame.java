@@ -1,4 +1,6 @@
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 
 /**
@@ -29,11 +31,16 @@ public class CarGame {
    private Highway highway;
    private Driver player;
    private Car car;
+   private int playerCarLane = 0;
    
    private long score;
-   private long tick;
    private long tickNumber;
-   private double timeLeft;
+   private double timeLeft  = 60.0;
+   private int gameDelay;
+  
+   private double tickLength = 0.01;
+  
+   
    
    /**
     * Returns a reference to the random number generator used by this game.
@@ -75,12 +82,17 @@ public class CarGame {
     */
    public CarGame(int numLanes, double tickLength, String playerName,
          int ticksBeforeStart) {
+	   this.gameDelay = ticksBeforeStart;
+	   this.player = new Driver(playerName, 12, true);
 	   
-	   this.player = new Driver(playerName, 12123, true);
-	   this.car = new Car(Color.BLUE, 4.0);
+//	   this.car = new Car(Color.BLUE, 5.0);
 	   this.highway = new Highway(numLanes);
 	   
-	   this.player.enterCar(this.car);
+//	   this.player.enterCar(this.car);
+//	   this.car.setDriver(this.player);
+//	   this.highway.addCar(this.car, 0);
+	   
+	   this.init();
 	   
       // Here are some suggestions and remarks:
       // - It doesn't matter what you set the human driver's preferred
@@ -100,6 +112,16 @@ public class CarGame {
     * sets initial time and score, and so on.
     */
     private void init() {
+    	this.tickNumber = 0 - this.gameDelay;
+    	this.car = new Car(Color.BLUE, 5.0);
+    	this.player.enterCar(this.car);
+    	this.car.setDriver(player);
+    	
+    	this.car.setVelocity(50.0);
+    	this.highway.addCar(car, 0);
+    	this.playerCarLane = 0;
+    	this.timeLeft = 60;
+    	this.score = 0;
 
     }
    
@@ -147,7 +169,7 @@ public class CarGame {
     * @param addCarProbability A positive double value that is less than 1. 
     */
    public void setAddCarProbability(double addCarProbability) {
-      
+      this.addCarProbability = addCarProbability;
    }
    
    
@@ -157,7 +179,7 @@ public class CarGame {
     * @param addObjectProbability A positive double value that is less than 1.
     */
    public void setAddCoinProbability(double addObjectProbability) {
-        
+	   this.addCoinProbability = addObjectProbability;
    }
 
    
@@ -344,8 +366,345 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     *   the canAct() and setCanAct() methods.
     */
    private void notifyDrivers() {
+	   //needs rework
+	   double velocityOfCarAhead;
+	   double distanceFromCarAhead;
 
+       double velocityOfCarBehind;
+       double distanceFromCarBehind;
+       
+       double velocityOfCarAheadLeft;
+       double distanceFromCarAheadLeft;
+       
+       double velocityOfCarBehindLeft;
+       double distanceFromCarBehindLeft;
+       
+       double velocityOfCarAheadRight;
+       double distanceFromCarAheadRight;
+       
+       double velocityOfCarBehindRight;
+       double distanceFromCarBehindRight;
+       
+       double tickLength = this.tickLength;
+
+       for (int i = 0; i < this.highway.getNumLanes(); i++)
+	   {
+    	   
+    	   
+    	   Car currentCar = null;
+    	   Car carAhead = null;
+    	   Car carBehind = null;
+    	   Car carLeftAhead = null;
+    	   Car carLeftBehind = null;
+    	   Car carRightAhead = null;
+    	   Car carRightBehind = null;
+    	   
+    	  
+    	   
+    	   Lane currentLane = this.highway.lanes.get(i);
+    	   currentLane.rewind();
+    	   Lane leftLane = null;
+    	   Lane rightLane = null;
+    	   
+    	   if (currentLane.hasNextCar() == true)
+    	   {
+    		   currentCar = currentLane.getNextCar(); 
+    	   }
+    	   //IDENTIFICATION of cars in relation to currentCar
+    	   while (currentCar != null) //IDENTIFICATION of cars within currentLane
+    	   {
+    		   if (currentLane.hasNextCar() == true) //if the lane is populated, the carBehind is set to the first car in the ArrayList
+    		   {
+    			   carBehind = currentLane.getNextCar(); //the NEXT car becomes the carBehind
+    		   }
+    		   else if (currentLane.hasNextCar() == false)
+    		   {
+    			   carBehind = null;
+    		   }
+    		   
+    		   if (currentCar.getDriver().isHuman() == true || currentCar.getDriver().canAct() == false)
+    		   {
+    			   carAhead = currentCar; 
+    			   currentCar = carBehind;
+    			   continue;
+    		   }
+    		   else //IDENTIFICATION of cars adjacent to currentLane
+    		   {
+    			   if (i != 0 && i != this.highway.getNumLanes()-1) 
+    			   {  
+    				   leftLane = this.highway.lanes.get(i-1); //lane to the left
+    				   leftLane.rewind();
+    				   rightLane = this.highway.lanes.get(i+1); //lane to the right
+    				   rightLane.rewind();
+    				   //identify cars immediately ahead and behind LEFT lane
+	    			   while (leftLane.hasNextCar())
+	    			   {
+	    				   carLeftAhead = leftLane.getNextCar();
+	    				   
+	    				   if (carLeftAhead.getPositionOfFront() < currentCar.getPositionOfFront()) //no cars in front of currentCar. carLeftAhead is definitely Behind  currentCar
+	    				   {
+	    					   carLeftBehind = carLeftAhead;
+	    					   carLeftAhead = null;
+	    					   break;
+	    				   }
+	    				   else if(leftLane.hasNextCar() == false) //if there are no other cars behind carLeftAhead, then carLeftBehind doesn't exist.
+	    				   {
+	    					   carLeftBehind = null;
+	    					   break;
+	    				   }
+	    				   else if (leftLane.lookAtNextCar().getPositionOfFront() < currentCar.getPositionOfFront()) //if the NEXT car has a position behind currentCar,and carLeftAhead is definitely in front of currentCar(otherwise the if condition above would trigger) it is the carLeftBehind. Middle Case
+	    				   {
+	    					   carLeftBehind = leftLane.lookAtNextCar();
+	    					   break;    					   //break out of the while loop. We found our leftCarAhead and rightCarAhead.
+	    				   }
+	
+	    			   }
+	    			
+	    			   
+	    			 //identify cars immediately ahead and behind RIGHT lane
+	    			   while (rightLane.hasNextCar())
+	    			   {
+	    				   carRightAhead = rightLane.getNextCar();
+	    				   
+	    				   if (carRightAhead.getPositionOfFront() < currentCar.getPositionOfFront()) //no cars in front of currentCar. carRightAhead is definitely behind currentCar
+	    				   {
+	    					   carRightBehind = carRightAhead;
+	    					   carRightAhead = null;
+	    					   break;
+	    				   }
+	    				   else if(rightLane.hasNextCar() == false) //if there are no other cars behind carLeftAhead, then carLeftBehind doesn't exist.
+	    				   {
+	    					   carRightBehind = null;
+	    					   break;
+	    				   }
+	  
+	    				   else if (rightLane.lookAtNextCar().getPositionOfFront() < currentCar.getPositionOfFront()) //if the NEXT car has a position behind currentCar, it is the carRightBehind. Middle Case
+	    				   {
+	    					   carRightBehind = rightLane.lookAtNextCar();
+	    					   break;    					   //break out of the while loop. We found our leftCarAhead and rightCarAhead.
+	    					   
+	    				   }
+	    			   }
+    			   }
+    			   else if (i == 0)
+    			   {
+    				   rightLane = this.highway.lanes.get(i+1);
+    				   rightLane.rewind();
+    				   while (rightLane.hasNextCar())
+	    			   {
+	    				   carRightAhead = rightLane.getNextCar();
+	    				   
+	    				   if (carRightAhead.getPositionOfFront() < currentCar.getPositionOfFront()) //no cars in front of currentCar. carRightAhead is definitely in front of currentCar
+	    				   {
+	    					   carRightBehind = carRightAhead;
+	    					   carRightAhead = null;
+	    					   break;
+	    				   }
+	    				   else if(rightLane.hasNextCar() == false) //if there are no other cars behind carLeftAhead, then carLeftBehind doesn't exist.
+	    				   {
+	    					   carRightBehind = null;
+	    					   break;
+	    				   }
+	  
+	    				   else if (rightLane.lookAtNextCar().getPositionOfFront() < currentCar.getPositionOfFront()) //if the NEXT car has a position behind currentCar, it is the carRightBehind. Middle Case
+	    				   {
+	    					   carRightBehind = rightLane.lookAtNextCar();
+	    					   break;    					   //break out of the while loop. We found our leftCarAhead and rightCarAhead.
+	    					   
+	    				   }
+	    			   }
+    			   }
+    			   else //i=4
+    			   {
+    				   leftLane = this.highway.lanes.get(i-1);
+    				   leftLane.rewind();
+    				   while (leftLane.hasNextCar())
+	    			   {
+	    				   carLeftAhead = leftLane.getNextCar();
+	    				   
+	    				   if (carLeftAhead.getPositionOfFront() < currentCar.getPositionOfFront()) //no cars in front of currentCar. carLeftAhead is definitely in front of currentCar
+	    				   {
+	    					   carLeftBehind = carLeftAhead;
+	    					   carLeftAhead = null;
+	    					   break;
+	    				   }
+	    				   else if(leftLane.hasNextCar() == false) //if there are no other cars behind carLeftAhead, then carLeftBehind doesn't exist.
+	    				   {
+	    					   carLeftBehind = null;
+	    					   break;
+	    				   }
+	    				   else if (leftLane.lookAtNextCar().getPositionOfFront() < currentCar.getPositionOfFront()) //if the NEXT car has a position behind currentCar,and carLeftAhead is definitely in front of currentCar(otherwise the if condition above would trigger) it is the carLeftBehind. Middle Case
+	    				   {
+	    					   carLeftBehind = leftLane.lookAtNextCar();
+	    					   break;    					   //break out of the while loop. We found our leftCarAhead and rightCarAhead.
+	    				   }
+	    			   }
+	 
+    			   }
+    			
+    				   
+ //needs rework   	
+    			   //car Ahead
+    			   if (carAhead != null) //if there is a car ahead
+    			   {
+    				   velocityOfCarAhead = carAhead.getVelocity();
+    				   distanceFromCarAhead = ( ( carAhead.getPositionOfFront() - carAhead.LENGTH) ) - currentCar.getPositionOfFront();
+    			   }
+    			   else //if there is no car ahead
+    			   {
+    				   velocityOfCarAhead= -1;
+    				   distanceFromCarAhead = -1;
+    			   }
+    			   //car Behind
+    			   if (carBehind != null) //if there is a car behind
+    			   {
+    				   velocityOfCarBehind = carBehind.getVelocity();
+    				   distanceFromCarBehind = ( ( currentCar.getPositionOfFront() - currentCar.LENGTH) ) - carBehind.getPositionOfFront();
+    			   }
+    			   else //if there is no car behind
+    			   {
+    				   velocityOfCarBehind = -1;
+    				   distanceFromCarBehind = -1;
+    			   }
+    			   //leftAhead
+    			   if (carLeftAhead != null && leftLane != null) //there is a lane to the side, and there is a car to the side
+    			   {
+    				   velocityOfCarAheadLeft = carLeftAhead.getVelocity();
+    				   distanceFromCarAheadLeft = ( ( carLeftAhead.getPositionOfFront() - carLeftAhead.LENGTH) ) - currentCar.getPositionOfFront();
+    			   }
+    			   else if (carLeftAhead == null && leftLane != null ) //there is a lane to the side, but there is no car to the side
+    			   {
+    				   velocityOfCarAheadLeft = -1;
+    				   distanceFromCarAheadLeft = -1;
+    			   }
+    			   else if (carLeftAhead == null && leftLane == null) //there is no lane to the side
+    			   {
+    				   velocityOfCarAheadLeft = 50;
+    				   distanceFromCarAheadLeft = -1;
+    			   }
+    			   else if (carLeftAhead != null && leftLane == null);
+    			   {
+    				   velocityOfCarAheadLeft = 50;
+    				   distanceFromCarAheadLeft = -1;
+    			   }
+    			   
+    			   //leftBehind
+    			   if (carLeftBehind != null && leftLane != null) //there is a lane to the left, and there is a car to the left
+    			   {
+    				   velocityOfCarBehindLeft = carLeftBehind.getVelocity();
+    				   distanceFromCarBehindLeft = ( ( currentCar.getPositionOfFront() - currentCar.LENGTH) ) - carLeftBehind.getPositionOfFront();
+    			   }
+    			   else if (carLeftBehind == null && leftLane != null)
+    			   {
+    				   velocityOfCarBehindLeft = -1;
+    				   distanceFromCarBehindLeft = -1;
+    			   }
+    			   else if (carLeftBehind == null && leftLane == null)
+    			   {
+    				   velocityOfCarBehindLeft = 50;
+    				   distanceFromCarBehindLeft = -1;
+    			   }
+    			   else
+    			   {
+    				   velocityOfCarBehindLeft = 50;
+    				   distanceFromCarBehindLeft = -1; 
+    			   }
+    			   
+    			   //rightAhead
+    			   if (carRightAhead != null && rightLane != null) //there is a lane to the side, and there is a car to the side
+    			   {
+    				   velocityOfCarAheadRight = carRightAhead.getVelocity();
+    				   distanceFromCarAheadRight = ( ( carRightAhead.getPositionOfFront() - carRightAhead.LENGTH) ) - currentCar.getPositionOfFront();
+    			   }
+    			   else if (carRightAhead == null && rightLane != null ) //there is a lane to the side, but there is no car to the side
+    			   {
+    				   velocityOfCarAheadRight = -1;
+    				   distanceFromCarAheadRight = -1;
+    			   }
+    			   else if (carRightAhead == null && rightLane == null) //there is no lane to the side
+    			   {
+    				   velocityOfCarAheadRight = 50;
+    				   distanceFromCarAheadRight = -1;
+    			   }
+    			   else 
+    			   {
+    				   velocityOfCarAheadRight = 50;
+    				   distanceFromCarAheadRight = -1; 
+    			   }
+    			   
+    			   //rightBehind
+    			   if (carRightBehind != null && rightLane != null) //there is a lane to the right, and there is a car to the right
+    			   {
+    				   velocityOfCarBehindRight = carRightBehind.getVelocity();
+    				   distanceFromCarBehindRight = ( ( currentCar.getPositionOfFront() - currentCar.LENGTH) ) - carRightBehind.getPositionOfFront();
+    			   }
+    			   else if (carRightBehind == null && rightLane != null)
+    			   {
+    				   velocityOfCarBehindRight = -1;
+    				   distanceFromCarBehindRight = -1;
+    			   }
+    			   else if (carRightAhead == null && rightLane == null)
+    			   {
+    				   velocityOfCarBehindRight = 50;
+    				   distanceFromCarBehindRight = -1;
+    			   }
+    			   else
+    			   {
+    				   velocityOfCarBehindRight = 50;
+    				   distanceFromCarBehindRight = -1;
+    			   }
+    			   
+    			   
+    			   //making the decision
+    			   currentCar.getDriver().setCanAct(false);
+    			   currentCar.getDriver().makeDecision(velocityOfCarAhead, distanceFromCarAhead, 
+    				         velocityOfCarBehind, distanceFromCarBehind, 
+    				         velocityOfCarAheadLeft, distanceFromCarAheadLeft, 
+    				         velocityOfCarBehindLeft, distanceFromCarBehindLeft,
+    				         velocityOfCarAheadRight, distanceFromCarAheadRight, 
+    				         velocityOfCarBehindRight, distanceFromCarBehindRight,
+    				         tickLength);
+    			   
+    			   if (currentCar.getDriver().makeDecision(velocityOfCarAhead, distanceFromCarAhead, 
+    				         velocityOfCarBehind, distanceFromCarBehind, 
+    				         velocityOfCarAheadLeft, distanceFromCarAheadLeft, 
+    				         velocityOfCarBehindLeft, distanceFromCarBehindLeft,
+    				         velocityOfCarAheadRight, distanceFromCarAheadRight, 
+    				         velocityOfCarBehindRight, distanceFromCarBehindRight,
+    				         tickLength) == Driver.GO_LEFT)
+    			   {
+    				  this.highway.moveCar(currentCar, i, i-1);
+    				  carLeftAhead = currentCar;
+    				  currentCar = carAhead;
+    				  System.exit(0);
+    			   }
+    			   else if (currentCar.getDriver().makeDecision(velocityOfCarAhead, distanceFromCarAhead, 
+    				         velocityOfCarBehind, distanceFromCarBehind, 
+    				         velocityOfCarAheadLeft, distanceFromCarAheadLeft, 
+    				         velocityOfCarBehindLeft, distanceFromCarBehindLeft,
+    				         velocityOfCarAheadRight, distanceFromCarAheadRight, 
+    				         velocityOfCarBehindRight, distanceFromCarBehindRight,
+    				         tickLength) == Driver.GO_RIGHT)
+    			   {
+    				   this.highway.moveCar(currentCar, i, i+1);
+    				   carRightAhead = currentCar;
+    				   currentCar = carAhead;
+    			   }
+    			   
+    			   carAhead = currentCar;
+    			   currentCar = carBehind;
+    			   
+    			   
+    			 
+    			   
+    		   }
+    	   }
+	   
+       
+    	}	   
    }
+
+   
 
       
    /**
@@ -354,7 +713,23 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     * time left and remove that coin from the highway. 
     */
    private void pickUpCoins() {
-      
+	   for (int i = 0; i < this.highway.getNumLanes(); i++)
+	   {
+ 		   Lane currentLane = this.highway.lanes.get(i);
+		   
+		   Car playerCar = this.player.getDrivenCar();
+		   
+		   while (currentLane.hasNextCoin() == true)
+		   {
+			   Coin currentCoin = currentLane.getNextCoin();
+			   if((playerCar.getPositionOfFront() - currentCoin.getPositionOfFront()) == 0)
+			   {
+				   score += currentCoin.getScoreBonus();
+			   }
+
+		   }
+		   currentLane.rewind(); //rewind the iterator
+	   }
    }
 
    
@@ -385,7 +760,26 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     * that no keys were pressed.
     */
    private void processKeysPressed() {
+	   if (this.keysPressed[CarGameController.KEY_UP] == true && this.playerCarLane != 0)
+	   {
+		   this.highway.moveCar(this.car, playerCarLane, playerCarLane - 1);
+		   this.playerCarLane -= 1;
+	   }
+	   if (this.keysPressed[CarGameController.KEY_DOWN] == true && this.playerCarLane != this.highway.getNumLanes()-1)
+	   {
+		   this.highway.moveCar(this.car, playerCarLane, playerCarLane + 1);
+		   this.playerCarLane += 1;
+	   }
+	   if (this.keysPressed[CarGameController.KEY_RIGHT] == true)
+	   {
+		   this.car.setVelocity(this.car.getVelocity() + 1);
+	   }
+	   if (this.keysPressed[CarGameController.KEY_LEFT] == true)
+	   {
+		   this.car.setVelocity(this.car.getVelocity() -1);
+	   }
 
+	   
    }
    
    
@@ -394,7 +788,28 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     * the amount of time specified by the game's tick length.
     */
    private void moveEverything() {
+	   for (int i = 0; i < this.highway.getNumLanes(); i++)
+	   {
+		   Lane currentLane = this.highway.lanes.get(i);
+		   currentLane.rewind();
 
+		   
+		   while (currentLane.hasNextCoin() == true)
+		   {
+			   Coin currentCoin = currentLane.getNextCoin(); 
+			   currentCoin.tick(tickLength);
+		   }
+		   
+		   
+		   while (currentLane.hasNextCar() == true)
+		   {
+			   Car currentCar = currentLane.getNextCar();
+			   currentCar.tick(tickLength);
+		   }
+		  
+	   }
+	   
+//tick?
    }
    
    
@@ -403,7 +818,23 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     * the player cannot pick the up and get points/time for them. 
     */
    private void removeExpiredCoins() {
+	  
+	   for (int i = 0; i < this.highway.getNumLanes(); i++)
+	   {
+		   Lane currentLane = this.highway.lanes.get(i);
 
+		   while (currentLane.hasNextCoin() == true)
+		   {
+			   Coin currentCoin = currentLane.getNextCoin(); 
+
+			   if(currentCoin.isExpired() == true)
+			   {
+				   currentLane.removeCoin(currentCoin);
+			   }
+
+		   }
+		   currentLane.rewind();
+	   }
    }
    
    
@@ -412,6 +843,21 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     *   more than DROP_CARS_DISTANCE should be removed from the highway.
     */
    private void removeDistantCars() {
+	   for (int i = 0; i < this.highway.getNumLanes(); i++)
+	   {
+		   Lane currentLane = this.highway.lanes.get(i);
+		   
+		   while (currentLane.hasNextCar() == true)
+		   {
+			   Car currentCar = currentLane.getNextCar();
+			   if((currentCar.getPositionOfFront() - currentCar.LENGTH) - this.car.getPositionOfFront() >= DROP_CARS_DISTANCE)
+			   {
+				   currentLane.removeCar(currentCar);
+			   }
+			   
+		   }
+		   currentLane.rewind(); //rewind the iterator
+	   }
 
    }
    
@@ -424,19 +870,68 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     *   accident, so make sure to check your random location and change it if
     *   necessary.
     */
+   
    private void addRandomCar() {
-      // Here are some things you may want to consider...
-      // 1) How to choose a random lane
-      // 2) What is the range for the random distance from the player's car.
-      // 3) How long should the car be?
-      // 4) What should its driver's preferred velocity be?
+	   
+      Car randomCar = new Car(new Color(r.nextInt(256), r.nextInt(256), 0), (double) 2 + r.nextInt(4)); //fix to double later on
+      Driver randomDriver = new Driver("dude", (double) (20 + r.nextInt(80)), false);
+      randomDriver.enterCar(randomCar);
+      randomCar.setDriver(randomDriver);
+      
+      if (this.tickNumber < 0)
+      {
+    	  randomCar.setPositionOfFront(this.car.getPositionOfFront() + 50 + r.nextInt(200)); 
+      }
+      else 
+      {
+    	  randomCar.setPositionOfFront(this.car.getPositionOfFront() + 250 + r.nextInt(200)); 
+      }
+      
+      ArrayList<Integer> lanesThatCanFitCar = new ArrayList<>();
+      
+      
+      
+      
+      while (lanesThatCanFitCar.isEmpty())
+      {
+    	  if (lanesThatCanFitCar.isEmpty() == false)
+    	  {
+    		  randomCar.setPositionOfFront(randomCar.getPositionOfFront()+5);
+    	  }
+    	  else
+    	  {
+    		  for (int i = 0; i < this.highway.getNumLanes(); i++) // check lanes in which this car can fit
+    	      {
+    	    	  if (this.highway.lanes.get(i).canFitCar(randomCar) == true)
+    	    	  {
+    	    		  lanesThatCanFitCar.add(i);
+    	    	  }
+    	      }
+    	  }
+      }
+      
+      int randomLaneToFit =  r.nextInt(lanesThatCanFitCar.size());
+      this.highway.addCar(randomCar, randomLaneToFit);
+      
+
+      
+
+
+      
+
+      
+	   // Here are some things you may want to consider...
+      // 1) How to choose a random lane (DONE)
+      // 2) What is the range for the random distance from the player's car. (DONE)
+      // 3) How long should the car be? 
+      // 4) What should its driver's preferred velocity be? (DONE)
       // 5) How to change where to put the car if its current
       //      position would immediately cause an accident?
       //
       // Also, to give the new car a color, use new Color(red, green, blue) 
       //      where red, green and blue should be between 0 and 255. 
       //      To distinguish computer cars from the player's car, we suggest
-      //      you set the blue component of the car's color to zero. 
+      //      you set the blue component of the car's color to zero. (DONE)
 
    }
    
@@ -446,8 +941,10 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     *   lane and pick some interesting properties for it. Again, we leave
     *   the details up to your creativity. 
     */
-   private void addRandomCoin() {
-
+   private void addRandomCoin() { 
+	   Coin randomCoin = new Coin(15.0, 2.0, 3, 3, 15, 25.0, 25.0, 124433);
+	   int RNGinRange = r.nextInt(highway.getNumLanes());
+	   this.highway.addCoin(randomCoin, RNGinRange);
    }
    
    
@@ -456,6 +953,51 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     * this method should remove them from the highway.
     */
    private void checkForCrashes() {
+	   Car currentCar = null;
+	   Car otherCar = null;
+	   
+	   for (int i = 0; i < this.highway.getNumLanes(); i++) // rewinding all lanes
+	   {
+		   
+		   Lane currentLane = this.highway.lanes.get(i);
+		   currentLane.rewind();
+		   
+		   if (currentLane.hasNextCar() == true) //if currentLane has any cars
+		   {
+			   currentCar = currentLane.getNextCar(); //0 set first car in the lane to the currentCar
+		   }
+		   else 
+		   {
+			   continue; //otherwise, check next lane because there definitely isn't gonna be a crash if there are no cars in a lane
+		   }
+		   
+		   while (currentLane.hasNextCar() == true)
+		   {
+			   otherCar = currentLane.getNextCar(); //1 
+			   if ((otherCar.getPositionOfFront() - otherCar.LENGTH) <= currentCar.getPositionOfFront() && currentCar.getPositionOfFront() <= otherCar.getPositionOfFront())
+			   {
+				   currentCar.setCrashed(true);
+				   otherCar.setCrashed(true);
+				   this.highway.lanes.get(i).removeCar(currentCar);
+				   this.highway.lanes.get(i).removeCar(otherCar);
+				   
+			   }
+			   
+			   currentCar = otherCar;
+		   }
+		   
+		   currentLane.rewind();
+		   while(currentLane.hasNextCar() == true)
+		   {
+			   currentCar = currentLane.getNextCar();
+			   if (currentCar.isCrashed())
+			   {
+				   currentLane.removeCar(currentCar);
+			   }
+		   }
+		   
+		 
+	   }
 
    }   
 }

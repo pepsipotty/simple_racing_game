@@ -52,6 +52,18 @@ public class Coin {
 	 *   its expiration.
 	 */
 	public static final int MIN_ALPHA = 32;
+	
+	public double tbonus;
+	public double tdecrease;
+	public double sbonus;
+	public int sdecrease;
+	public long life;
+	public double pos;
+	public double vel;
+	public long decperiod;
+	
+	private boolean expiredStatus = false;
+	private long ticknumber;
 	   
 	/**
     * Creates a new coin with specified properties.
@@ -71,6 +83,15 @@ public class Coin {
 	public Coin(double timeBonus, double timeDecrease,
 			int scoreBonus, int scoreDecrease, long lifetimeInTicks,
 			double positionOfFront, double velocity, long decreasePeriod) {
+		
+		this.tbonus = timeBonus;
+		this.tdecrease = timeDecrease;
+		this.sbonus = scoreBonus;
+		this.sdecrease = scoreDecrease;
+		this.life = lifetimeInTicks;
+		this.pos = positionOfFront;
+		this.vel = velocity;
+		this.decperiod = decreasePeriod;
 
 	}
 	
@@ -81,7 +102,8 @@ public class Coin {
     *   this method is called.
 	 */
 	public double getTimeBonus() {
-		
+		return tbonus;
+
 	}
 	
 	/**
@@ -91,6 +113,7 @@ public class Coin {
     *   this method is called.
 	 */
 	public double getScoreBonus() {
+		return sbonus;
 		
 	}
 	
@@ -110,7 +133,7 @@ public class Coin {
     * @return how far along the highway the coin is.
 	 */
 	public double getPositionOfFront() {
-		
+		return pos;
 	}
 	
 	/**
@@ -118,7 +141,7 @@ public class Coin {
     * @return the speed at which the coin is moving
     */
    public double getVelocity() {
-		
+		return vel;
 	}
 	
    /**
@@ -126,7 +149,7 @@ public class Coin {
     * IDs are the same.
     */
    public boolean equals(Object o) {
-      
+      return (((Coin)o).ID == ID);
    }
    
    /**
@@ -139,6 +162,24 @@ public class Coin {
     */
 	public void tick(double time) {
 		
+	
+		if (this.ticknumber > this.life)
+		{
+			this.expiredStatus = true;
+		}
+		
+		if (this.ticknumber % this.decperiod == 0)
+		{
+			this.sbonus -= this.sdecrease;
+			this.tbonus -= this.tdecrease;
+		}
+		
+		this.pos += (this.vel * time); //new position is the old position times the displacement(time x velocity) 
+		
+		
+		
+		this.life--;
+		this.ticknumber++;
 	}
 	
 	/**
@@ -146,7 +187,7 @@ public class Coin {
 	 * @return whether this coin's lifetime is over.
 	 */
 	public boolean isExpired() {
-	   
+	   return expiredStatus;
 	}
 	
 	

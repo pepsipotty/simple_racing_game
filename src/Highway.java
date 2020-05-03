@@ -94,8 +94,8 @@ public class Highway {
     * @param toLane The number of the lane where the car should go.
     */
    public void moveCar(Car car, int fromLane, int toLane) {
-      lanes.get(fromLane).removeCar(car); //removes car from lane
-      lanes.get(toLane).addCar(car); //adds car to new lane
+      removeCar(car, fromLane); //removes car from lane
+      addCar(car, toLane); //adds car to new lane
    }
    
    
