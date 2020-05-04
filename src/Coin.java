@@ -53,17 +53,21 @@ public class Coin {
 	 */
 	public static final int MIN_ALPHA = 32;
 	
-	public double tbonus;
-	public double tdecrease;
-	public double sbonus;
-	public int sdecrease;
-	public long life;
-	public double pos;
-	public double vel;
-	public long decperiod;
+	public double timeBonus;
+	public double timeDecrease;
+	public double scoreBonus;
+	public int scoreDecrease;
+	public long lifetimeInTicks;
+	public double positionOfFront;
+	public double velocity;
+	public long decreasePeriod;
+	
+	public long ticksAlive;
+	
+	public boolean isCollected = false;
 	
 	private boolean expiredStatus = false;
-	private long ticknumber;
+	private long ticknumber = 0;
 	   
 	/**
     * Creates a new coin with specified properties.
@@ -77,21 +81,21 @@ public class Coin {
     *   exist.
     * @param positionOfFront The starting position of the front of 
     *   this coin on the highway.
-    * @param velocity The velocity at which this coin is moving.
+    * @param velocityocity The velocityocity at which this coin is moving.
     * @param decreasePeriod Number of ticks after which bonuses periodically decrease.
     */
 	public Coin(double timeBonus, double timeDecrease,
 			int scoreBonus, int scoreDecrease, long lifetimeInTicks,
 			double positionOfFront, double velocity, long decreasePeriod) {
 		
-		this.tbonus = timeBonus;
-		this.tdecrease = timeDecrease;
-		this.sbonus = scoreBonus;
-		this.sdecrease = scoreDecrease;
-		this.life = lifetimeInTicks;
-		this.pos = positionOfFront;
-		this.vel = velocity;
-		this.decperiod = decreasePeriod;
+		this.timeBonus = timeBonus;
+		this.timeDecrease = timeDecrease;
+		this.scoreBonus = scoreBonus;
+		this.scoreDecrease = scoreDecrease;
+		this.lifetimeInTicks = lifetimeInTicks;
+		this.positionOfFront = positionOfFront;
+		this.velocity = velocity;
+		this.decreasePeriod = decreasePeriod;
 
 	}
 	
@@ -102,7 +106,7 @@ public class Coin {
     *   this method is called.
 	 */
 	public double getTimeBonus() {
-		return tbonus;
+		return timeBonus;
 
 	}
 	
@@ -113,7 +117,7 @@ public class Coin {
     *   this method is called.
 	 */
 	public double getScoreBonus() {
-		return sbonus;
+		return scoreBonus;
 		
 	}
 	
@@ -122,7 +126,7 @@ public class Coin {
 	 * @return how many ticks this coin has been alive.
 	 */
 	public long getTimeAlive() {
-		
+		return this.ticksAlive; 
 	}
 	
 	/**
@@ -133,7 +137,7 @@ public class Coin {
     * @return how far along the highway the coin is.
 	 */
 	public double getPositionOfFront() {
-		return pos;
+		return positionOfFront;
 	}
 	
 	/**
@@ -141,7 +145,7 @@ public class Coin {
     * @return the speed at which the coin is moving
     */
    public double getVelocity() {
-		return vel;
+		return velocity;
 	}
 	
    /**
@@ -155,7 +159,7 @@ public class Coin {
    /**
     * Updates the state of the coin. This should increase the number of
     *   ticks this coin has been alive and update its distance based
-    *   on its velocity and the tick length. Time and score bonuses
+    *   on its velocityocity and the tick length. Time and score bonuses
     *   also get decreased if the right number of ticks since the last time they 
     *   were decreased has passed.
     * @param time The tick length of the car game
@@ -163,22 +167,22 @@ public class Coin {
 	public void tick(double time) {
 		
 	
-		if (this.ticknumber > this.life)
+		if (this.ticknumber > this.lifetimeInTicks) //tickNumber corresponds to the number of ticks this coin has been alive for
 		{
 			this.expiredStatus = true;
 		}
 		
-		if (this.ticknumber % this.decperiod == 0)
+		if (this.ticknumber % this.decreasePeriod == 0)
 		{
-			this.sbonus -= this.sdecrease;
-			this.tbonus -= this.tdecrease;
+			this.scoreBonus -= this.scoreDecrease;
+			this.timeBonus -= this.timeDecrease;
 		}
 		
-		this.pos += (this.vel * time); //new position is the old position times the displacement(time x velocity) 
+		this.positionOfFront += (this.velocity * time); //new position is the old position times the displacement(time x velocity) 
 		
 		
 		
-		this.life--;
+		this.lifetimeInTicks--;
 		this.ticknumber++;
 	}
 	
@@ -197,10 +201,18 @@ public class Coin {
     * <xmp>ID: 3, at distance: 955.850000000004 with score bonus 796(-12 decrease), time bonus 6.300000000000006(-0.1 decrease) and decrease period 5. It has lived 88 out of 400 ticks</xmp>
     */
    public String toString() {
-      
+      return " ";
    }
 	
+   public boolean getIsCollected()
+   {
+	   return this.isCollected;
+   }
    
+   public void setIsCollected(boolean isCollected)
+   {
+	   this.isCollected = isCollected;
+   }
    
    /**
     * This method paints the coin using the provided Graphics coin g.
@@ -230,37 +242,39 @@ public class Coin {
 	}
 	
 	private Color getDisplayColor() {
-	   int red;
-	   int blue;
-	   int green;
-	   int alpha;
-	   
-	   // Color is a convex combination of min and max color depending on
-	   //   the score
-	   if (this.scoreBonus >= MAX_SCORE) {
-         red = MAX_SCORE_COLOR.getRed();
-         green = MAX_SCORE_COLOR.getGreen();
-         blue = MAX_SCORE_COLOR.getBlue();
-	   } else if (this.scoreBonus <= MIN_SCORE) {
-         red = MIN_SCORE_COLOR.getRed();
-         green = MIN_SCORE_COLOR.getGreen();
-         blue = MIN_SCORE_COLOR.getBlue();
-      } else { 
-         // NOTE: MUST TYPECAST
-         double scoreFraction = ((double)this.scoreBonus - MIN_SCORE) / (MAX_SCORE - MIN_SCORE);
-         red = (int)(MIN_SCORE_COLOR.getRed() * (1 - scoreFraction) + 
-               MAX_SCORE_COLOR.getRed() * scoreFraction);
-         green = (int)(MIN_SCORE_COLOR.getGreen() * (1 - scoreFraction) + 
-               MAX_SCORE_COLOR.getGreen() * scoreFraction);
-         blue = (int)(MIN_SCORE_COLOR.getBlue() * (1 - scoreFraction) + 
-               MAX_SCORE_COLOR.getBlue() * scoreFraction);
-      }
-	   
-	   // Transparency depends on the fraction of time left in this guy's lifetime.
-	   double timeFraction = (double)this.ticksAlive / this.lifetimeInTicks;
-	   alpha = (int)(timeFraction * MIN_ALPHA + (1 - timeFraction) * MAX_ALPHA);
-	   
-	   // And now we have all the data we need to make the color and return it.
-	   return new Color(red, green, blue, alpha);
+//	   int red;
+//	   int blue;
+//	   int green;
+//	   int alpha;
+//	   
+//	   // Color is a convex combination of min and max color depending on
+//	   //   the score
+//	   if (this.scoreBonus >= MAX_SCORE) {
+//         red = MAX_SCORE_COLOR.getRed();
+//         green = MAX_SCORE_COLOR.getGreen();
+//         blue = MAX_SCORE_COLOR.getBlue();
+//	   } else if (this.scoreBonus <= MIN_SCORE) {
+//         red = MIN_SCORE_COLOR.getRed();
+//         green = MIN_SCORE_COLOR.getGreen();
+//         blue = MIN_SCORE_COLOR.getBlue();
+//      } else { 
+//         // NOTE: MUST TYPECAST
+//         double scoreFraction = ((double)this.scoreBonus - MIN_SCORE) / (MAX_SCORE - MIN_SCORE);
+//         red = (int)(MIN_SCORE_COLOR.getRed() * (1 - scoreFraction) + 
+//               MAX_SCORE_COLOR.getRed() * scoreFraction);
+//         green = (int)(MIN_SCORE_COLOR.getGreen() * (1 - scoreFraction) + 
+//               MAX_SCORE_COLOR.getGreen() * scoreFraction);
+//         blue = (int)(MIN_SCORE_COLOR.getBlue() * (1 - scoreFraction) + 
+//               MAX_SCORE_COLOR.getBlue() * scoreFraction);
+//      }
+//	   
+//	   // Transparency depends on the fraction of time left in this guy's lifetime.
+//	   double timeFraction = (double)this.ticksAlive / this.lifetimeInTicks;
+//	   alpha = (int)(timeFraction * MIN_ALPHA + (1 - timeFraction) * MAX_ALPHA);
+//	   
+//	   // And now we have all the data we need to make the color and return it.
+//	   return new Color(red, green, blue, alpha);
+		return Color.YELLOW;
+		
 	}
 }

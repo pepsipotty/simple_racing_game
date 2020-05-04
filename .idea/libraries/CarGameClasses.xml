@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="CarGameClasses">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/CarGameClasses.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="jar://$PROJECT_DIR$/CarGameClasses.jar!/" />
+    </SOURCES>
+  </library>
+</component>

@@ -96,8 +96,9 @@ public class Highway {
    public void moveCar(Car car, int fromLane, int toLane) {
       removeCar(car, fromLane); //removes car from lane
       addCar(car, toLane); //adds car to new lane
+//      lanes.get(fromLane).removeCar(car);
+//      lanes.get(toLane).addCar(car);
    }
-   
    
    /**
     * Returns the number of lanes on this highway.
@@ -316,6 +317,12 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
    </xmp>
     */
    public String toString() {
-      return lanes.toString();
+      StringBuilder a = new StringBuilder("");
+      for (int i = 0; i < this.lanes.size(); i++)
+      {
+    	  a.append("Lane " + i + ":" + this.lanes.get(i).getNumCars() + "(s)," + "undefined coins(s)" + "/n");
+    	  
+      }
+      return a.toString();
    }
 }

@@ -33,10 +33,11 @@ public class CarGame {
    private Car car;
    private int playerCarLane = 0;
    
-   private long score;
+   public int score = 0;
    private long tickNumber;
    private double timeLeft  = 60.0;
    private int gameDelay;
+  
   
    private double tickLength = 0.01;
   
@@ -189,10 +190,9 @@ public class CarGame {
    public void tick() {      
       // Add a random cars with some probability.
       // We allow multiple cars and/or objects to be added.
-      while (this.getRNG().nextDouble() < addCarProbability) {
-         this.addRandomCar();
-      }
-      
+	   while (this.getRNG().nextDouble() < addCarProbability) {
+	         this.addRandomCar();
+	      }
       // A negative tick number means the game is not ready to start yet.
       // This is used mostly so that we have some time to set up
       //   the game world and also to display a countdown before game starts.
@@ -209,7 +209,8 @@ public class CarGame {
       // Drivers should now all be able to act
       this.highway.rewind();
       for (int i = 0; i < this.highway.getNumLanes(); i++) {
-         while (this.highway.hasNextCar(i)) {
+    	 this.highway.lanes.get(i).rewind(); //WHAT THE FUCK IS GOING ON?! WHY ARE YOU NOT RESETTING THE ITERATOR YOU NITWITjhfjk,yfikyrfyikurf
+         while (this.highway.hasNextCar(i)) { 
             this.highway.getNextCar(i).getDriver().setCanAct(true);
          }
       }
@@ -225,6 +226,7 @@ public class CarGame {
       if (this.player.getDrivenCar().isCrashed()) {
          return;
       }
+      
       
       // Looks like the driver has moved and hasn't run into anything,
       //   so let's see if he caught something.
@@ -255,6 +257,9 @@ public class CarGame {
       // Some bookkeeping at the end.
       this.tickNumber++;
       this.timeLeft -= 1.0 / CarGame.TICKS_PER_SECOND;
+      
+      
+
    }
    
    
@@ -366,6 +371,8 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     *   the canAct() and setCanAct() methods.
     */
    private void notifyDrivers() {
+	   
+	   
 	   //needs rework
 	   double velocityOfCarAhead;
 	   double distanceFromCarAhead;
@@ -430,7 +437,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     		   }
     		   else //IDENTIFICATION of cars adjacent to currentLane
     		   {
-    			   if (i != 0 && i != this.highway.getNumLanes()-1) 
+    			   if (i != 0 && i != this.highway.getNumLanes()-1)  //CASE 1: NOT EXTREME RIGHT OR EXTREME LEFT
     			   {  
     				   leftLane = this.highway.lanes.get(i-1); //lane to the left
     				   leftLane.rewind();
@@ -486,7 +493,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
 	    				   }
 	    			   }
     			   }
-    			   else if (i == 0)
+    			   else if (i == 0) //if currentLane is the leftmost lane
     			   {
     				   rightLane = this.highway.lanes.get(i+1);
     				   rightLane.rewind();
@@ -541,10 +548,11 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
 	    			   }
 	 
     			   }
-    			
+    			//Now we should have carAhead, carBehind, CarLeftAhead, carLeftBehind, carRightAhead, carRightBehind and currentCar. 
+    			   
+    			   //Calculations of velocities and distances of all these cars
     				   
- //needs rework   	
-    			   //car Ahead
+    			   //carAhead
     			   if (carAhead != null) //if there is a car ahead
     			   {
     				   velocityOfCarAhead = carAhead.getVelocity();
@@ -555,6 +563,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     				   velocityOfCarAhead= -1;
     				   distanceFromCarAhead = -1;
     			   }
+    			   
     			   //car Behind
     			   if (carBehind != null) //if there is a car behind
     			   {
@@ -566,6 +575,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     				   velocityOfCarBehind = -1;
     				   distanceFromCarBehind = -1;
     			   }
+    			   
     			   //leftAhead
     			   if (carLeftAhead != null && leftLane != null) //there is a lane to the side, and there is a car to the side
     			   {
@@ -582,7 +592,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     				   velocityOfCarAheadLeft = 50;
     				   distanceFromCarAheadLeft = -1;
     			   }
-    			   else if (carLeftAhead != null && leftLane == null);
+    			   else
     			   {
     				   velocityOfCarAheadLeft = 50;
     				   distanceFromCarAheadLeft = -1;
@@ -594,17 +604,17 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     				   velocityOfCarBehindLeft = carLeftBehind.getVelocity();
     				   distanceFromCarBehindLeft = ( ( currentCar.getPositionOfFront() - currentCar.LENGTH) ) - carLeftBehind.getPositionOfFront();
     			   }
-    			   else if (carLeftBehind == null && leftLane != null)
+    			   else if (carLeftBehind == null && leftLane != null) //there is a lane to the left, but no car to the left
     			   {
     				   velocityOfCarBehindLeft = -1;
     				   distanceFromCarBehindLeft = -1;
     			   }
-    			   else if (carLeftBehind == null && leftLane == null)
+    			   else if (carLeftBehind == null && leftLane == null) //if there is no lane and no car to the left
     			   {
     				   velocityOfCarBehindLeft = 50;
     				   distanceFromCarBehindLeft = -1;
     			   }
-    			   else
+    			   else //if there is a car but no lane to the left(shouldn't exist)
     			   {
     				   velocityOfCarBehindLeft = 50;
     				   distanceFromCarBehindLeft = -1; 
@@ -657,7 +667,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     			   
     			   //making the decision
     			   currentCar.getDriver().setCanAct(false);
-    			   currentCar.getDriver().makeDecision(velocityOfCarAhead, distanceFromCarAhead, 
+    			   int decision = currentCar.getDriver().makeDecision(velocityOfCarAhead, distanceFromCarAhead, 
     				         velocityOfCarBehind, distanceFromCarBehind, 
     				         velocityOfCarAheadLeft, distanceFromCarAheadLeft, 
     				         velocityOfCarBehindLeft, distanceFromCarBehindLeft,
@@ -665,26 +675,17 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     				         velocityOfCarBehindRight, distanceFromCarBehindRight,
     				         tickLength);
     			   
-    			   if (currentCar.getDriver().makeDecision(velocityOfCarAhead, distanceFromCarAhead, 
-    				         velocityOfCarBehind, distanceFromCarBehind, 
-    				         velocityOfCarAheadLeft, distanceFromCarAheadLeft, 
-    				         velocityOfCarBehindLeft, distanceFromCarBehindLeft,
-    				         velocityOfCarAheadRight, distanceFromCarAheadRight, 
-    				         velocityOfCarBehindRight, distanceFromCarBehindRight,
-    				         tickLength) == Driver.GO_LEFT)
+    			   
+
+    			   
+    			   if (decision == Driver.GO_LEFT)
     			   {
     				  this.highway.moveCar(currentCar, i, i-1);
     				  carLeftAhead = currentCar;
     				  currentCar = carAhead;
-    				  System.exit(0);
+    				  
     			   }
-    			   else if (currentCar.getDriver().makeDecision(velocityOfCarAhead, distanceFromCarAhead, 
-    				         velocityOfCarBehind, distanceFromCarBehind, 
-    				         velocityOfCarAheadLeft, distanceFromCarAheadLeft, 
-    				         velocityOfCarBehindLeft, distanceFromCarBehindLeft,
-    				         velocityOfCarAheadRight, distanceFromCarAheadRight, 
-    				         velocityOfCarBehindRight, distanceFromCarBehindRight,
-    				         tickLength) == Driver.GO_RIGHT)
+    			   else if (decision == Driver.GO_RIGHT)
     			   {
     				   this.highway.moveCar(currentCar, i, i+1);
     				   carRightAhead = currentCar;
@@ -693,14 +694,13 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     			   
     			   carAhead = currentCar;
     			   currentCar = carBehind;
-    			   
-    			   
-    			 
+    			   //progressing the iterator
+    			  
     			   
     		   }
     	   }
 	   
-       
+       currentLane.rewind();
     	}	   
    }
 
@@ -713,23 +713,31 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     * time left and remove that coin from the highway. 
     */
    private void pickUpCoins() {
+	   Coin currentCoin;
+	   Lane currentLane;
+	   
+	   
 	   for (int i = 0; i < this.highway.getNumLanes(); i++)
 	   {
- 		   Lane currentLane = this.highway.lanes.get(i);
+		   currentLane = this.highway.lanes.get(i);
+		   currentLane.rewind();
 		   
-		   Car playerCar = this.player.getDrivenCar();
-		   
-		   while (currentLane.hasNextCoin() == true)
+		   while(currentLane.hasNextCoin())
 		   {
-			   Coin currentCoin = currentLane.getNextCoin();
-			   if((playerCar.getPositionOfFront() - currentCoin.getPositionOfFront()) == 0)
+			   currentCoin = currentLane.getNextCoin();
+			   if (this.car.getPositionOfFront() - this.car.LENGTH < currentCoin.getPositionOfFront() && this.car.getPositionOfFront() > currentCoin.getPositionOfFront())
 			   {
-				   score += currentCoin.getScoreBonus();
-			   }
-
+				   currentCoin.setIsCollected(true);
+				   this.timeLeft += currentCoin.getTimeBonus();
+				   this.score += currentCoin.getScoreBonus();
+				   currentCoin.ticksAlive = currentCoin.lifetimeInTicks - (2 * CarGame.TICKS_PER_SECOND);
+				   currentLane.removeCoin(currentCoin);
 		   }
-		   currentLane.rewind(); //rewind the iterator
 	   }
+		   
+	   }
+	
+	  
    }
 
    
@@ -764,6 +772,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
 	   {
 		   this.highway.moveCar(this.car, playerCarLane, playerCarLane - 1);
 		   this.playerCarLane -= 1;
+		   
 	   }
 	   if (this.keysPressed[CarGameController.KEY_DOWN] == true && this.playerCarLane != this.highway.getNumLanes()-1)
 	   {
@@ -779,7 +788,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
 		   this.car.setVelocity(this.car.getVelocity() -1);
 	   }
 
-	   
+	
    }
    
    
@@ -806,7 +815,8 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
 			   Car currentCar = currentLane.getNextCar();
 			   currentCar.tick(tickLength);
 		   }
-		  
+		   
+		  currentLane.rewind();
 	   }
 	   
 //tick?
@@ -822,18 +832,17 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
 	   for (int i = 0; i < this.highway.getNumLanes(); i++)
 	   {
 		   Lane currentLane = this.highway.lanes.get(i);
+		   currentLane.rewind();
 
 		   while (currentLane.hasNextCoin() == true)
 		   {
 			   Coin currentCoin = currentLane.getNextCoin(); 
 
-			   if(currentCoin.isExpired() == true)
+			   if(currentCoin.isExpired())
 			   {
 				   currentLane.removeCoin(currentCoin);
 			   }
-
 		   }
-		   currentLane.rewind();
 	   }
    }
    
@@ -846,6 +855,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
 	   for (int i = 0; i < this.highway.getNumLanes(); i++)
 	   {
 		   Lane currentLane = this.highway.lanes.get(i);
+		   currentLane.rewind();
 		   
 		   while (currentLane.hasNextCar() == true)
 		   {
@@ -856,7 +866,7 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
 			   }
 			   
 		   }
-		   currentLane.rewind(); //rewind the iterator
+		    currentLane.rewind();//rewind the iterator
 	   }
 
    }
@@ -942,9 +952,11 @@ CAR 16: ID: 6, distance: 562.6199999999928, velocity: 51.0, length: 5.75; driven
     *   the details up to your creativity. 
     */
    private void addRandomCoin() { 
-	   Coin randomCoin = new Coin(15.0, 2.0, 3, 3, 15, 25.0, 25.0, 124433);
-	   int RNGinRange = r.nextInt(highway.getNumLanes());
-	   this.highway.addCoin(randomCoin, RNGinRange);
+	   
+	   Coin randomCoin = new Coin(8, 0.1, 1000, 12, 400, this.car.getPositionOfFront() + 100, 20 + r.nextInt(51), 5);
+	   int randomLaneIndex = r.nextInt(this.highway.getNumLanes());
+	   this.highway.addCoin(randomCoin, randomLaneIndex);
+
    }
    
    
